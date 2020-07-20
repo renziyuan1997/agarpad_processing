@@ -13,7 +13,6 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as mgs
 import matplotlib.ticker
-import matplotlib.patches as mpatches
 from matplotlib.colors import cnames as colornames
 
 # custom
@@ -25,12 +24,12 @@ from utils import *
 # yaml formats
 npfloat_representer = lambda dumper,value: dumper.represent_float(float(value))
 nparray_representer = lambda dumper,value: dumper.represent_list(value.tolist())
-float_representer = lambda dumper,value: dumper.represent_scalar(u'tag:yaml.org,2002:float', "{:<.8e}".format(value))
+float_representer = lambda dumper,value: dumper.represent_scalar('tag:yaml.org,2002:float', "{:<.8e}".format(value))
 unicode_representer = lambda dumper,value: dumper.represent_unicode(value.encode('utf-8'))
 yaml.add_representer(float,float_representer)
 yaml.add_representer(np.float_,npfloat_representer)
 yaml.add_representer(np.ndarray,nparray_representer)
-yaml.add_representer(unicode,unicode_representer)
+yaml.add_representer(str,unicode_representer)
 
 # matplotlib controls
 plt.rcParams['svg.fonttype'] = 'none'  # to embed fonts in output ('path' is to convert as text as paths)
@@ -41,7 +40,7 @@ plt.rcParams['axes.linewidth']=0.5
 def default_parameters():
     """Generate a default parameter dictionary."""
 
-    print "Loading default parameters"
+    print("Loading default parameters")
     params={}
     # filtering - select only a subset
     params['analysis_overlays']={}
@@ -63,17 +62,17 @@ def default_parameters():
     mydict['mode']='total_fl'  # alternative value is \'concentration\'
     return params
 
-def hist_dimensions(celldicts, labels, outputdir='.', bins=None, colors=None, units_dx=None, title=None, mode='um',qcut=0, ncol=None):
+def hist_dimensions(celldicts, labels, outputdir='.', bins=None, colors=None, units_dx=None, title=None, mode='um',qcut=0):
     """
     Make an histogram of the signal obtained per cell.
     """
 
     # initialization
     if mode == 'um':
-        titles = [u'length (\u03BCm)', u'width (\u03BCm)', u'area (\u03BCm\u00B2)', u'volume (\u03BCm\u00B3)']
+        titles = ['length (\u03BCm)', 'width (\u03BCm)', 'area (\u03BCm\u00B2)', 'volume (\u03BCm\u00B3)']
         attrs = ['height_um','width_um','area_um2', 'volume_um3']
     else:
-        titles = [u'length (px)', u'width (px)', u'area (px\u00B2)', u'volume (px\u00B3)']
+        titles = ['length (px)', 'width (px)', 'area (px\u00B2)', 'volume (px\u00B3)']
         attrs = ['height','width','area', 'volume']
 
     nattrs = len(attrs)
@@ -83,11 +82,11 @@ def hist_dimensions(celldicts, labels, outputdir='.', bins=None, colors=None, un
     ndata = len(celldicts)
     if ndata == 0:
         raise ValueError("Empty input data")
-    print "ndata = {:d}".format(ndata)
+    print("ndata = {:d}".format(ndata))
 
     # colors
     if colors is None:
-        colors = colornames.keys()[:ndata]
+        colors = list(colornames.keys())[:ndata]
 
     # bins
     if bins is None:
@@ -114,7 +113,7 @@ def hist_dimensions(celldicts, labels, outputdir='.', bins=None, colors=None, un
 
         # make lists
         dimensions = [ [] for i in range(nattrs)]
-        keys = cells.keys()
+        keys = list(cells.keys())
         for n in range(ncells):
             key = keys[n]
             cell = cells[key]
@@ -146,11 +145,11 @@ def hist_dimensions(celldicts, labels, outputdir='.', bins=None, colors=None, un
 
     for j in range(nattrs):
         attr = attrs[j]
-        print "attr {:d} / {:d}".format(j,nattrs-1)
+        print("attr {:d} / {:d}".format(j,nattrs-1))
         ax = axes[j]
 
         for i in range(ndata):
-            print "{:<2s}data {:d} / {:d}".format("", i, ndata-1)
+            print("{:<2s}data {:d} / {:d}".format("", i, ndata-1))
             # compute histogram
             d = data[i][j]
             N = len(d)
@@ -158,14 +157,18 @@ def hist_dimensions(celldicts, labels, outputdir='.', bins=None, colors=None, un
             n0 = int(qcut*float(N))
             n1 = min(int((1.-qcut)*float(N)),N-1)
             d = d[n0:n1+1]
-            print "{:<4s}qcut = {:.1f} %".format("",qcut*100)
+            print("{:<4s}qcut = {:.1f} %".format("",qcut*100))
             hist,edges = np.histogram(d, bins=bins[j][i], density=True)
-            print "{:<4s}nbins = {:,d}".format("",len(edges)-1)
+            print("{:<4s}nbins = {:,d}".format("",len(edges)-1))
 
             # plot histogram
             color = colors[i]
             #ax.bar(edges[:-1], hist, np.diff(edges), color='none', edgecolor=color, lw=0.5, label=labels[i])
-            ax.plot(0.5*(edges[:-1]+edges[1:]), hist, '-', color=color, lw=0.5)
+            if j == 0:
+                label = labels[i]
+            else:
+                label = None
+            ax.plot(0.5*(edges[:-1]+edges[1:]), hist, '-', color=color, lw=0.5, label=label)
         # end loop
     # end loop
 
@@ -176,8 +179,8 @@ def hist_dimensions(celldicts, labels, outputdir='.', bins=None, colors=None, un
         #ax.annotate(fmts[i].format(mu=mus[i],sig=sigs[i], N=len(data[i]), med=meds[i]), xy=(0.70,0.98), xycoords='axes fraction', ha='left', va='top')
 
         # adjust the axis
-#        if (j == 0):
-#            ax.legend(loc='best',fontsize="medium",frameon=False)
+        if (j == 0):
+            ax.legend(loc='best',fontsize="medium",frameon=False)
         #ax.set_ylabel("pdf",fontsize="medium",labelpad=10)
         ax.tick_params(length=4)
         ax.tick_params(axis='both', labelsize='medium', labelleft=False, left=False)
@@ -192,25 +195,7 @@ def hist_dimensions(celldicts, labels, outputdir='.', bins=None, colors=None, un
         ax.spines['right'].set_visible(False)
         ax.spines['top'].set_visible(False)
 
-    # legend
-    patches=[]
-    for n in range(ndata):
-        label=labels[n]
-        color=colors[n]
-        if label is None:
-            label = "{:d}".format(n)
-        patch = mpatches.Patch(color=color, label=label)
-        patches.append(patch)
-    #axes[2].add_artist(plt.legend(handles=patches, loc='upper right'))
-    if (ncol is None):
-        ncol = ndata
-    #plt.figlegend(handles=patches, fontsize='small', mode='expand', ncol=ncol,borderaxespad=0, borderpad=0, loc='lower center', frameon=False)
-    plt.figlegend(handles=patches, fontsize='small', ncol=ncol,borderaxespad=0, borderpad=0, loc='lower center', frameon=False)
-
-    nrow=int(float(ndata)/ncol + 0.5)
-    a = 0.05
-    rect=[0., nrow*a, 1., 1.]
-    gs.tight_layout(fig, rect=rect)
+    gs.tight_layout(fig)
     if mode == 'um':
         filename = 'analysis_overlay_dimensions_um'
     else:
@@ -220,21 +205,21 @@ def hist_dimensions(celldicts, labels, outputdir='.', bins=None, colors=None, un
     for ext in exts:
         fileout = os.path.join(outputdir,filename+ext)
         fig.savefig(fileout, bbox_inches='tight', pad_inches=0)
-        print "Fileout: {:<s}".format(fileout)
+        print("Fileout: {:<s}".format(fileout))
     return
 
-def hist_channel(celldicts, labels, outputdir='.', bins=None, colors=None, units_dx=None, titles=None, mode='total_fl',qcut=0, xminxmax=None, backgrounds=None, ncol=None):
+def hist_channel(celldicts, labels, outputdir='.', bins=None, colors=None, units_dx=None, titles=None, mode='total_fl',qcut=0, xminxmax=None, backgrounds=None):
     """
     Make an histogram of the signal obtained per cell.
     """
 
     # initialization
     if mode == 'concentration_fl':
-        print "concentration_fl mode"
+        print("concentration_fl mode")
         fl_dtype = np.float_
         fmt = "$\\mu = {mu:,.2f}$\n$\\sigma = {sig:,.2f}$\n$N = {N:,d}$\n$\\mathrm{{med}} = {med:,.2f}$"
     elif mode == 'total_fl':
-        print "total_fl mode"
+        print("total_fl mode")
         fl_dtype = np.uint16
         fmt = "$\\mu = {mu:,d}$\n$\\sigma = {sig:,d}$\n$N = {N:,d}$\n$\\mathrm{{med}} = {med:,d}$"
     else:
@@ -246,15 +231,15 @@ def hist_channel(celldicts, labels, outputdir='.', bins=None, colors=None, units
         raise ValueError("Empty input data")
     if ndata != len(labels):
         raise ValueError("Labels should have the same dimension as cell dicts")
-    print "ndata = {:d}".format(ndata)
+    print("ndata = {:d}".format(ndata))
 
     # channels
-    nchannel = len(celldicts[0].values()[0]['fluorescence']['total'])
-    print "nchannel = {:d}".format(nchannel)
+    nchannel = len(list(celldicts[0].values())[0]['fluorescence']['total'])
+    print("nchannel = {:d}".format(nchannel))
 
     # colors
     if colors is None:
-        colors = colornames.keys()[:ndata]
+        colors = list(colornames.keys())[:ndata]
 
     # bins
     if bins is None:
@@ -288,7 +273,7 @@ def hist_channel(celldicts, labels, outputdir='.', bins=None, colors=None, units
             BG = []
 
             # make lists
-            keys = cells.keys()
+            keys = list(cells.keys())
             for n in range(ncells):
                 key = keys[n]
                 cell = cells[key]
@@ -339,26 +324,31 @@ def hist_channel(celldicts, labels, outputdir='.', bins=None, colors=None, units
         axes.append(ax)
 
     for c in range(nchannel):
-        print "channel = {:d} / {:d}".format(c,nchannel-1)
+        print("channel = {:d} / {:d}".format(c,nchannel-1))
         ax=axes[c]
         for i in range(ndata):
-            print "{:<2s}data {:d} / {:d}".format("", i, ndata-1)
+            print("{:<2s}data {:d} / {:d}".format("", i, ndata-1))
             # compute histogram
             d = data[c][i]
             N = len(d)
             d = np.sort(d)
             n0 = int(0.5*qcut*float(N))
-            print "{:<4s}qcut = {:.1f} %".format("",qcut*100)
+            print("{:<4s}qcut = {:.1f} %".format("",qcut*100))
             n1 = N - n0
 #            print n0, n1
             d = d[n0:n1]
             hist,edges = np.histogram(d, bins=bins[c][i], density=True)
-            print "{:<4s}nbins = {:,d}".format("",len(edges)-1)
+            print("{:<4s}nbins = {:,d}".format("",len(edges)-1))
 
             # plot histogram
             color = colors[i]
             #ax.bar(edges[:-1], hist, np.diff(edges), color='none', edgecolor=color, lw=0.5, label=labels[i])
-            ax.plot(0.5*(edges[:-1]+edges[1:]), hist, '-', color=color, lw=0.5)
+            if (c ==0):
+                label=labels[i]
+            else:
+                label=None
+
+            ax.plot(0.5*(edges[:-1]+edges[1:]), hist, '-', color=color, lw=0.5, label=label)
             # end loop on data
 
         # plot background
@@ -387,25 +377,7 @@ def hist_channel(celldicts, labels, outputdir='.', bins=None, colors=None, units
         ax.spines['top'].set_visible(False)
     # end loop on channels
 
-    # legend
-    patches=[]
-    for n in range(ndata):
-        label=labels[n]
-        color=colors[n]
-        if label is None:
-            label = "{:d}".format(n)
-        patch = mpatches.Patch(color=color, label=label)
-        patches.append(patch)
-    #axes[2].add_artist(plt.legend(handles=patches, loc='upper right'))
-    if (ncol is None):
-        ncol = ndata
-    #plt.figlegend(handles=patches, fontsize='small', mode='expand', ncol=ncol,borderaxespad=0, borderpad=0, loc='lower center', frameon=False)
-    plt.figlegend(handles=patches, fontsize='small', ncol=ncol,borderaxespad=0, borderpad=0, loc='lower center', frameon=False)
-
-    nrow=int(float(ndata)/ncol + 0.5)
-    a = 0.05
-    rect=[0., nrow*a, 1., 1.]
-    gs.tight_layout(fig, rect=rect)
+    gs.tight_layout(fig)
     if mode == 'concentration_fl':
         filename = 'analysis_overlay_concentration_fl'
     elif mode == 'total_fl':
@@ -415,21 +387,21 @@ def hist_channel(celldicts, labels, outputdir='.', bins=None, colors=None, units
     for ext in exts:
         fileout = os.path.join(outputdir,filename+ext)
         fig.savefig(fileout, bbox_inches='tight', pad_inches=0)
-        print "Fileout: {:<s}".format(fileout)
+        print("Fileout: {:<s}".format(fileout))
     return
 
-def hist_queen(celldicts, labels, outputdir='.', channels=[0,1], bins=None, colors=None, units_dx=None, titles=None, mode='total_fl',qcut=0, xminxmax=None, backgrounds=None, ncol=None):
+def hist_queen(celldicts, labels, outputdir='.', channels=[0,1], bins=None, colors=None, units_dx=None, titles=None, mode='total_fl',qcut=0, xminxmax=None, backgrounds=None):
     """
     Make an histogram of the signal obtained per cell for the fluorescence channels used to measure the Queen ratio. Also plot the distribution of the Queen ratio.
     """
 
     # initialization
     if mode == 'concentration_fl':
-        print "concentration_fl mode"
+        print("concentration_fl mode")
         fl_dtype = np.float_
         fmt = "$\\mu = {mu:,.2f}$\n$\\sigma = {sig:,.2f}$\n$N = {N:,d}$\n$\\mathrm{{med}} = {med:,.2f}$"
     elif mode == 'total_fl':
-        print "total_fl mode"
+        print("total_fl mode")
         fl_dtype = np.uint16
         fmt = "$\\mu = {mu:,d}$\n$\\sigma = {sig:,d}$\n$N = {N:,d}$\n$\\mathrm{{med}} = {med:,d}$"
     else:
@@ -441,18 +413,18 @@ def hist_queen(celldicts, labels, outputdir='.', channels=[0,1], bins=None, colo
         raise ValueError("Empty input data")
     if ndata != len(labels):
         raise ValueError("Labels should have the same dimension as cell dicts")
-    print "ndata = {:d}".format(ndata)
+    print("ndata = {:d}".format(ndata))
 
     # channels
     nchannel = 2
     c1 = channels[0]
     c2 = channels[1]
-    print "nchannel = {:d}, c1 = {:d}, c2 = {:d}".format(nchannel, c1, c2)
+    print("nchannel = {:d}, c1 = {:d}, c2 = {:d}".format(nchannel, c1, c2))
     nplot = nchannel + 1
 
     # colors
     if colors is None:
-        colors = colornames.keys()[:ndata]
+        colors = list(colornames.keys())[:ndata]
 
     # bins
     if bins is None:
@@ -491,7 +463,7 @@ def hist_queen(celldicts, labels, outputdir='.', channels=[0,1], bins=None, colo
         QUEEN = []
 
         # make lists
-        keys = cells.keys()
+        keys = list(cells.keys())
         for n in range(ncells):
             key = keys[n]
             cell = cells[key]
@@ -518,12 +490,7 @@ def hist_queen(celldicts, labels, outputdir='.', channels=[0,1], bins=None, colo
             elif mode == 'total_fl':
                 sys.exit("Not programmed yet!")
                 pass
-            try:
-                z = ((float(x1) -  float(bg_x1)) / (float(x2) - float(bg_x2)) )
-            except ZeroDivisionError:
-                print("x = {:.6f}    bg_x = {:.6f}    y = {:.6f}    bg_y = {:.6f}".format(x1,bg_x1,x2,bg_x2))
-                print("Skipping cell {:s}".format(cell['id']))
-                continue
+            z = ((float(x1) -  float(bg_x1)) / (float(x2) - float(bg_x2)) )
             FL1.append(x1)
             FL2.append(x2)
             BG1.append(bg_x1)
@@ -557,45 +524,52 @@ def hist_queen(celldicts, labels, outputdir='.', channels=[0,1], bins=None, colo
     # plot fluorescence
     data=[data_I1, data_I2]
     for c in [c1,c2]:
-        print "channel = {:d} / {:d}".format(c,1)
+        print("channel = {:d} / {:d}".format(c,1))
         ax=axes[c]
         for i in range(ndata):
-            print "{:<2s}data {:d} / {:d}".format("", i, ndata-1)
+            print("{:<2s}data {:d} / {:d}".format("", i, ndata-1))
             # compute histogram
             d = data[c][i]
             N = len(d)
             d = np.sort(d)
-            n0 = int(qcut*float(N))
-            n1 = min(int((1.-qcut)*float(N)),N-1)
-            d = d[n0:n1+1]
+            n0 = int(0.5*qcut*float(N))
+            print("{:<4s}qcut = {:.1f} %".format("",qcut*100))
+            n1 = N - n0
+#            print n0, n1
+            d = d[n0:n1]
             hist,edges = np.histogram(d, bins=bins[c][i], density=True)
-            nbins = len(edges)-1
-            print "{:<4s}nbins = {:,d}".format("",nbins)
+            print("{:<4s}nbins = {:,d}".format("",len(edges)-1))
 
             # plot histogram
             color = colors[i]
             #ax.bar(edges[:-1], hist, np.diff(edges), color='none', edgecolor=color, lw=0.5, label=labels[i])
-            ax.plot(0.5*(edges[:-1]+edges[1:]), hist, '-', color=color, lw=0.5)
+            if (c ==0):
+                label=labels[i]
+            else:
+                label=None
+
+            ax.plot(0.5*(edges[:-1]+edges[1:]), hist, '-', color=color, lw=0.5, label=label)
 
         # plot background
         ax.axvline(x=bgs[c], color=bgcolor, lw=0.5, ls='--')
-        print "background = {:.2f}".format(bgs[c])
+        print("background = {:.2f}".format(bgs[c]))
         # end loop on data
 
     # plot Queen ratio
     ax=axes[2]
     for i in range(ndata):
-        print "{:<2s}data {:d} / {:d}".format("", i, ndata-1)
+        print("{:<2s}data {:d} / {:d}".format("", i, ndata-1))
         # compute histogram
         d = data_queen[i]
         N = len(d)
         d = np.sort(d)
-        n0 = int(qcut*float(N))
-        n1 = min(int((1.-qcut)*float(N)),N-1)
-        d = d[n0:n1+1]
+        n0 = int(0.5*qcut*float(N))
+        print("{:<4s}qcut = {:.1f} %".format("",qcut*100))
+        n1 = N - n0
+#            print n0, n1
+        d = d[n0:n1]
         hist,edges = np.histogram(d, bins=bins[2][i], density=True)
-        nbins = len(edges)-1
-        print "{:<4s}nbins = {:,d}".format("",nbins)
+        print("{:<4s}nbins = {:,d}".format("",len(edges)-1))
 
         # plot histogram
         color = colors[i]
@@ -633,25 +607,7 @@ def hist_queen(celldicts, labels, outputdir='.', channels=[0,1], bins=None, colo
         ax.spines['top'].set_visible(False)
     # end loop on channels
 
-    # legend
-    patches=[]
-    for n in range(ndata):
-        label=labels[n]
-        color=colors[n]
-        if label is None:
-            label = "{:d}".format(n)
-        patch = mpatches.Patch(color=color, label=label)
-        patches.append(patch)
-    #axes[2].add_artist(plt.legend(handles=patches, loc='upper right'))
-    if (ncol is None):
-        ncol = ndata
-    #plt.figlegend(handles=patches, fontsize='small', mode='expand', ncol=ncol,borderaxespad=0, borderpad=0, loc='lower center', frameon=False)
-    plt.figlegend(handles=patches, fontsize='small', ncol=ncol,borderaxespad=0, borderpad=0, loc='lower center', frameon=False)
-
-    nrow=int(float(ndata)/ncol + 0.5)
-    a = 0.05
-    rect=[0., nrow*a, 1., 1.]
-    gs.tight_layout(fig, rect=rect)
+    gs.tight_layout(fig)
     if mode == 'concentration_fl':
         filename = 'analysis_overlay_queen_concentration_fl'
     elif mode == 'total_fl':
@@ -661,7 +617,7 @@ def hist_queen(celldicts, labels, outputdir='.', channels=[0,1], bins=None, colo
     for ext in exts:
         fileout = os.path.join(outputdir,filename+ext)
         fig.savefig(fileout, bbox_inches='tight', pad_inches=0)
-        print "Fileout: {:<s}".format(fileout)
+        print("Fileout: {:<s}".format(fileout))
     return
 
 def hist_queen_old(celldicts, labels, outputdir='.', bins=['auto','auto','auto'], channels=[0,1], colors=['darkblue', 'darkgreen', 'darkblue'], units_dx=None, qcut=0):
@@ -679,7 +635,7 @@ def hist_queen_old(celldicts, labels, outputdir='.', bins=['auto','auto','auto']
     ndata = len(celldicts)
     if ndata == 0:
         raise ValueError("Empty input data")
-    print "ndata = {:d}".format(ndata)
+    print("ndata = {:d}".format(ndata))
 
     for i in range(ndata):
         cells = celldicts[i]
@@ -691,7 +647,7 @@ def hist_queen_old(celldicts, labels, outputdir='.', bins=['auto','auto','auto']
         QUEEN=[]
 
         # make lists
-        keys = cells.keys()
+        keys = list(cells.keys())
         for n in range(ncells):
             key = keys[n]
             cell = cells[key]
@@ -732,7 +688,7 @@ def hist_queen_old(celldicts, labels, outputdir='.', bins=['auto','auto','auto']
         n1 = min(int((1.-qcut)*float(N)),N-1)
         d = d[n0:n1+1]
         hist,edges = np.histogram(d, bins=bins[i], density=True)
-        print "nbins = {:,d}".format(len(edges)-1)
+        print("nbins = {:,d}".format(len(edges)-1))
 
         # plot histogram
         color = colors[i]
@@ -773,7 +729,7 @@ def hist_queen_old(celldicts, labels, outputdir='.', bins=['auto','auto','auto']
     for ext in exts:
         fileout = os.path.join(outputdir,filename+ext)
         fig.savefig(fileout, bbox_inches='tight', pad_inches=0)
-        print "Fileout: {:<s}".format(fileout)
+        print("Fileout: {:<s}".format(fileout))
     return
 
 #################### main ####################
@@ -800,10 +756,10 @@ if __name__ == "__main__":
     celldicts=[]
     for n in range(nfiles):
         cellfile = cellfiles[n]
-        print cellfile
+        print(cellfile)
         cells = load_json2dict(cellfile)
         ncells = len(cells)
-        print "ncells = {:d}".format(ncells)
+        print("ncells = {:d}".format(ncells))
         celldicts.append(cells)
 
     # labels
@@ -824,7 +780,7 @@ if __name__ == "__main__":
     outputdir = os.path.join(rootdir,'overlays')
     if not os.path.isdir(outputdir):
         os.makedirs(outputdir)
-    print "{:<20s}{:<s}".format("outputdir", outputdir)
+    print("{:<20s}{:<s}".format("outputdir", outputdir))
 
     # parameter file
     if namespace.paramfile is None:

@@ -23,12 +23,12 @@ from utils import *
 # yaml formats
 npfloat_representer = lambda dumper,value: dumper.represent_float(float(value))
 nparray_representer = lambda dumper,value: dumper.represent_list(value.tolist())
-float_representer = lambda dumper,value: dumper.represent_scalar(u'tag:yaml.org,2002:float', "{:<.8e}".format(value))
+float_representer = lambda dumper,value: dumper.represent_scalar('tag:yaml.org,2002:float', "{:<.8e}".format(value))
 unicode_representer = lambda dumper,value: dumper.represent_unicode(value.encode('utf-8'))
 yaml.add_representer(float,float_representer)
 yaml.add_representer(np.float_,npfloat_representer)
 yaml.add_representer(np.ndarray,nparray_representer)
-yaml.add_representer(unicode,unicode_representer)
+yaml.add_representer(str,unicode_representer)
 
 # matplotlib controls
 plt.rcParams['svg.fonttype'] = 'none'  # to embed fonts in output ('path' is to convert as text as paths)
@@ -39,7 +39,7 @@ plt.rcParams['axes.linewidth']=0.5
 def default_parameters():
     """Generate a default parameter dictionary."""
 
-    print "Loading default parameters"
+    print("Loading default parameters")
     params={}
     # dimensions
     params['dimensions']={}
@@ -66,20 +66,16 @@ def hist_dimensions(cells, outputdir='.', bins=['auto','auto','auto','auto'], un
 
     # initialization
     if mode == 'um':
-        titles = [u'length (\u03BCm)', u'width (\u03BCm)', u'area (\u03BCm\u00B2)', u'volume (\u03BCm\u00B3)']
+        titles = ['length (\u03BCm)', 'width (\u03BCm)', 'area (\u03BCm\u00B2)', 'volume (\u03BCm\u00B3)']
         attrs = ['height_um','width_um','area_um2', 'volume_um3']
     else:
-        titles = [u'length (px)', u'width (px)', u'area (px\u00B2)', u'volume (px\u00B3)']
+        titles = ['length (px)', 'width (px)', 'area (px\u00B2)', 'volume (px\u00B3)']
         attrs = ['height','width','area', 'volume']
 
     nattrs = len(attrs)
-    if bins is None:
-        bins = ['auto' for i in range(nattrs)]
-    elif len(bins) != nattrs:
+    if len(bins) != nattrs:
         raise ValueError("bins has the wrong dimensions!")
-    if units_dx is None:
-        units_dx = [None for i in range(nattrs)]
-    elif len(units_dx) != nattrs:
+    if len(units_dx) != nattrs:
         raise ValueError("units_dx has the wrong dimensions!")
     ncells = len(cells)
 
@@ -90,7 +86,7 @@ def hist_dimensions(cells, outputdir='.', bins=['auto','auto','auto','auto'], un
 
     # make lists
     data = [ [] for i in range(nattrs)]
-    keys = cells.keys()
+    keys = list(cells.keys())
     for n in range(ncells):
         key = keys[n]
         cell = cells[key]
@@ -118,13 +114,13 @@ def hist_dimensions(cells, outputdir='.', bins=['auto','auto','auto','auto'], un
 
     for i in range(nattrs):
         attr = attrs[i]
-        print "attr = {}".format(attr)
+        print("attr = {}".format(attr))
         ax = axes[i]
 
         # compute histogram
         hist,edges = np.histogram(data[i], bins=bins[i], density=False)
         nbins = len(edges)-1
-        print "nbins = {:d}".format(nbins)
+        print("nbins = {:d}".format(nbins))
 
         # plot histogram
         color = 'grey'
@@ -165,7 +161,7 @@ def hist_dimensions(cells, outputdir='.', bins=['auto','auto','auto','auto'], un
     for ext in exts:
         fileout = os.path.join(outputdir,filename+ext)
         fig.savefig(fileout, bbox_inches='tight', pad_inches=0)
-        print "Fileout: {:<s}".format(fileout)
+        print("Fileout: {:<s}".format(fileout))
     return
 
 def hist_dimensions_other(cells, outputdir='.', bins=None, units_dx=None, alpha=0.):
@@ -203,7 +199,7 @@ def hist_dimensions_other(cells, outputdir='.', bins=None, units_dx=None, alpha=
 
     # make lists
     data = [ [] for i in range(nattrs)]
-    keys = cells.keys()
+    keys = list(cells.keys())
     for n in range(ncells):
         key = keys[n]
         cell = cells[key]
@@ -230,7 +226,7 @@ def hist_dimensions_other(cells, outputdir='.', bins=None, units_dx=None, alpha=
         axes.append(ax)
 
     for i in range(nattrs):
-        print "attr number = {:d}".format(i)
+        print("attr number = {:d}".format(i))
         ax = axes[i]
 
         # remove outliers
@@ -238,7 +234,7 @@ def hist_dimensions_other(cells, outputdir='.', bins=None, units_dx=None, alpha=
         ntot = len(data_sorted)
         n0 = int(0.5*alpha*float(ntot))
         n1 = ntot - n0
-        print "{:2s}n0 = {:d}    n1 = {:d}".format("", n0, n1)
+        print("{:2s}n0 = {:d}    n1 = {:d}".format("", n0, n1))
         data_trunc = data_sorted[n0:n1]
 
         mu = np.nanmean(data_trunc)
@@ -250,7 +246,7 @@ def hist_dimensions_other(cells, outputdir='.', bins=None, units_dx=None, alpha=
         # compute histogram
         hist,edges = np.histogram(data_trunc, bins=bins[i], density=False)
         nbins = len(edges)-1
-        print "{:2s}nbins = {:d}".format("",nbins)
+        print("{:2s}nbins = {:d}".format("",nbins))
 
         # plot histogram
         color = 'grey'
@@ -281,7 +277,7 @@ def hist_dimensions_other(cells, outputdir='.', bins=None, units_dx=None, alpha=
     for ext in exts:
         fileout = os.path.join(outputdir,filename+ext)
         fig.savefig(fileout, bbox_inches='tight', pad_inches=0)
-        print "Fileout: {:<s}".format(fileout)
+        print("Fileout: {:<s}".format(fileout))
     return
 
 def hist_channels(cells, outputdir='.', bins=None, units_dx=None, titles=None, mode='total',qcut=0, bg_val=None, backgrounds=None):
@@ -291,11 +287,11 @@ def hist_channels(cells, outputdir='.', bins=None, units_dx=None, titles=None, m
 
     # initialization
     if mode == 'concentration_fl':
-        print "concentration_fl mode"
+        print("concentration_fl mode")
         fl_dtype = np.float_
         fmt = "$\\mu = {mu:,.2f}$\n$\\sigma = {sig:,.2f}$\n$N = {N:,d}$\n$\\mathrm{{med}} = {med:,.2f}$"
     elif mode == 'total_fl':
-        print "total_fl mode"
+        print("total_fl mode")
         fl_dtype = np.uint16
         fmt = "$\\mu = {mu:,d}$\n$\\sigma = {sig:,d}$\n$N = {N:,d}$\n$\\mathrm{{med}} = {med:,d}$"
     else:
@@ -304,7 +300,7 @@ def hist_channels(cells, outputdir='.', bins=None, units_dx=None, titles=None, m
     data_bg = []
 
     # filling up the fluorescence
-    cellref = cells.values()[0]
+    cellref = list(cells.values())[0]
     nchannel = len(cellref['fluorescence']['total'])
 
     if bins is None:
@@ -322,7 +318,7 @@ def hist_channels(cells, outputdir='.', bins=None, units_dx=None, titles=None, m
         BG = []
 
         # make lists
-        keys = cells.keys()
+        keys = list(cells.keys())
         for n in range(ncells):
             key = keys[n]
             cell = cells[key]
@@ -360,7 +356,7 @@ def hist_channels(cells, outputdir='.', bins=None, units_dx=None, titles=None, m
     else:
         bgcolor='g'
         bgs = [np.float_(backgrounds[i]) for i in range(nchannel)]
-        #print bgs
+        print(bgs)
 
     # make figure
     fig = plt.figure(num=None, facecolor='w', figsize=(nchannel*4,3))
@@ -373,7 +369,7 @@ def hist_channels(cells, outputdir='.', bins=None, units_dx=None, titles=None, m
         axes.append(ax)
 
     for i in range(nchannel):
-        print "channel = {}".format(i)
+        print("channel = {}".format(i))
         ax = axes[i]
 
         # compute histogram
@@ -385,7 +381,7 @@ def hist_channels(cells, outputdir='.', bins=None, units_dx=None, titles=None, m
         d = d[n0:n1+1]
         hist,edges = np.histogram(d, bins=bins[i], density=False)
         nbins = len(edges)-1
-        print "nbins = {:d}".format(nbins)
+        print("nbins = {:d}".format(nbins))
 
         # plot histogram
         color = 'grey'
@@ -434,7 +430,7 @@ def hist_channels(cells, outputdir='.', bins=None, units_dx=None, titles=None, m
     for ext in exts:
         fileout = os.path.join(outputdir,filename+ext)
         fig.savefig(fileout, bbox_inches='tight', pad_inches=0)
-        print "Fileout: {:<s}".format(fileout)
+        print("Fileout: {:<s}".format(fileout))
     return
 
 def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['I1','I2','QUEEN'], channels=[0,1], colors=['darkblue', 'darkgreen', 'darkblue'], units_dx=[None, None, None], mode='total_fl', bgcolor='r',qcut=0, backgrounds=None):
@@ -455,12 +451,12 @@ def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['
     QUEEN=[]
 
     if mode == 'concentration_fl':
-        print "concentration_fl mode"
+        print("concentration_fl mode")
         fl_dtype = np.float_
         fl_fmt = "$\\mu = {mu:,.2f}$\n$\\sigma = {sig:,.2f}$\n$N = {N:,d}$\n$\\mathrm{{med}} = {med:,.2f}$"
 
     elif mode == 'total_fl':
-        print "total_fl mode"
+        print("total_fl mode")
         fl_dtype = np.uint16
         fl_fmt = "$\\mu = {mu:,d}$\n$\\sigma = {sig:,d}$\n$N = {N:,d}$\n$\\mathrm{{med}} = {med:,d}$"
     else:
@@ -472,7 +468,7 @@ def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['
         bgcolor='g'
 
     # make lists
-    keys = cells.keys()
+    keys = list(cells.keys())
     for n in range(ncells):
         key = keys[n]
         cell = cells[key]
@@ -498,12 +494,7 @@ def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['
                 bg_y  = backgrounds[c2]
         elif mode == 'total_fl':
             pass
-        try:
-            z = (float(x)-float(bg_x))/(float(y)-float(bg_y))
-        except ZeroDivisionError:
-            print("x = {:.6f}    bg_x = {:.6f}    y = {:.6f}    bg_y = {:.6f}".format(x,bg_x,y,bg_y))
-            print("Skipping cell {:s}".format(cell['id']))
-            continue
+        z = (float(x)-float(bg_x))/(float(y)-float(bg_y))
         I1.append(x)
         BG1.append(bg_x)
         I2.append(y)
@@ -516,8 +507,8 @@ def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['
     I2 = np.array(I2, dtype=fl_dtype)
     BG2 = np.array(BG2, dtype=fl_dtype)
     QUEEN = np.array(QUEEN, dtype=np.float_)
-    #print np.unique(BG1)
-    #print np.unique(BG2)
+    print(np.unique(BG1))
+    print(np.unique(BG2))
 
     # make plot
     N = len(I1)
@@ -529,7 +520,7 @@ def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['
     mu_bg1 = np.median(BG1)
     mu_bg2 = np.median(BG2)
     data_bg = [BG1, BG2]
-    print "bg1 = {:.2f}    bg2 = {:.2f}".format(mu_bg1,mu_bg2)
+    print("bg1 = {:.2f}    bg2 = {:.2f}".format(mu_bg1,mu_bg2))
     fmts = [fl_fmt,fl_fmt,"$\\mu = {mu:.2f}$\n$\\sigma = {sig:.2f}$\n$N = {N:,d}$\n$\\mathrm{{med}} = {med:.2f}$"]
 
     fig = plt.figure(num=None, facecolor='w', figsize=(3*4,3))
@@ -553,7 +544,7 @@ def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['
         d = d[n0:n1+1]
         hist,edges = np.histogram(d, bins=bins[i], density=False)
         nbins = len(edges)-1
-        print "nbins = {:d}".format(nbins)
+        print("nbins = {:d}".format(nbins))
 
         # plot histogram
         color = colors[i]
@@ -606,7 +597,7 @@ def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['
     for ext in exts:
         fileout = os.path.join(outputdir,filename+ext)
         fig.savefig(fileout, bbox_inches='tight', pad_inches=0)
-        print "Fileout: {:<s}".format(fileout)
+        print("Fileout: {:<s}".format(fileout))
     return
 
 #################### main ####################
@@ -628,7 +619,7 @@ if __name__ == "__main__":
 
     cells = load_json2dict(cellfile)
     ncells = len(cells)
-    print "ncells = {:d}".format(ncells)
+    print("ncells = {:d}".format(ncells))
 
     # output directory
     outputdir = namespace.outputdir
@@ -639,7 +630,7 @@ if __name__ == "__main__":
     outputdir = os.path.join(outputdir,'analysis')
     if not os.path.isdir(outputdir):
         os.makedirs(outputdir)
-    print "{:<20s}{:<s}".format("outputdir", outputdir)
+    print("{:<20s}{:<s}".format("outputdir", outputdir))
 
     # parameter file
     if namespace.paramfile is None:
@@ -660,7 +651,7 @@ if __name__ == "__main__":
         mydir = os.path.join(outputdir,'dimensions')
         if not os.path.isdir(mydir):
             os.makedirs(mydir)
-        print "{:<20s}{:<s}".format("outputdir", mydir)
+        print("{:<20s}{:<s}".format("outputdir", mydir))
         hist_dimensions(cells, outputdir=mydir, **allparams['dimensions'])
 
     # dimensions other
@@ -668,7 +659,7 @@ if __name__ == "__main__":
         mydir = os.path.join(outputdir,'dimensions')
         if not os.path.isdir(mydir):
             os.makedirs(mydir)
-        print "{:<20s}{:<s}".format("outputdir", mydir)
+        print("{:<20s}{:<s}".format("outputdir", mydir))
         hist_dimensions_other(cells, outputdir=mydir, **allparams['dimensions_other'])
 
     # make queen analysis
@@ -676,7 +667,7 @@ if __name__ == "__main__":
         mydir = os.path.join(outputdir,'fluorescence')
         if not os.path.isdir(mydir):
             os.makedirs(mydir)
-        print "{:<20s}{:<s}".format("outputdir", mydir)
+        print("{:<20s}{:<s}".format("outputdir", mydir))
         hist_channels(cells, outputdir=mydir, **allparams['fluorescence'])
 
     # make queen analysis
@@ -684,6 +675,6 @@ if __name__ == "__main__":
         mydir = os.path.join(outputdir,'queen')
         if not os.path.isdir(mydir):
             os.makedirs(mydir)
-        print "{:<20s}{:<s}".format("outputdir", mydir)
+        print("{:<20s}{:<s}".format("outputdir", mydir))
         make_plot_queen(cells, outputdir=mydir, **allparams['queen'])
 

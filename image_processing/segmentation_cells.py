@@ -10,7 +10,7 @@ import shutil
 #from PIL import Image
 import tifffile as ti
 import cv2
-import cPickle as pkl
+import pickle as pkl
 
 # custom
 from utils import *
@@ -19,18 +19,18 @@ from utils import *
 # yaml formats
 npfloat_representer = lambda dumper,value: dumper.represent_float(float(value))
 nparray_representer = lambda dumper,value: dumper.represent_list(value.tolist())
-float_representer = lambda dumper,value: dumper.represent_scalar(u'tag:yaml.org,2002:float', "{:<.8e}".format(value))
+float_representer = lambda dumper,value: dumper.represent_scalar('tag:yaml.org,2002:float', "{:<.8e}".format(value))
 unicode_representer = lambda dumper,value: dumper.represent_unicode(value.encode('utf-8'))
 yaml.add_representer(float,float_representer)
 yaml.add_representer(np.float_,npfloat_representer)
 yaml.add_representer(np.ndarray,nparray_representer)
-yaml.add_representer(unicode,unicode_representer)
+yaml.add_representer(str,unicode_representer)
 
 #################### function ####################
 def default_parameters():
     """Generate a default parameter dictionary."""
 
-    print "Loading default parameters"
+    print("Loading default parameters")
     params={}
     # filtering - select only a subset
     params['segmentation']={}
@@ -157,14 +157,14 @@ def get_estimator_boundingbox(tiff_file, channel=0, outputdir='.', w0=1, w1=100,
     # rescale dynamic range linearly (important for OTSU)
     amin = np.min(img)
     amax = np.max(img)
-    print "amin = {:.1g}    amax = {:.1g}".format(amin,amax)
+    print("amin = {:.1g}    amax = {:.1g}".format(amin,amax))
     img = (np.float_(img) - amin)/(amax-amin)
 
     ## thresholding to binary mask
     norm8 = float(2**8-1)
     norm16 = float(2**16-1)
     if threshold is None:
-        print "OTSU thresholding"
+        print("OTSU thresholding")
         # convert to 8-bit image (Open CV requirement for OTSU)
         img = np.array(255*img,np.uint8)
         img8 = np.copy(img)
@@ -179,13 +179,13 @@ def get_estimator_boundingbox(tiff_file, channel=0, outputdir='.', w0=1, w1=100,
         thres16 = np.uint16(thres1*norm16)
         ret = max((thres1 - amin)/(amax-amin),0) # value in rescaled DNR
         ret = np.uint8(255*ret) # uint8
-        print "thres1 = {:.1g}    threshold_rescaled_DNR_uint8 = {:d}".format(thres1,ret)
+        print("thres1 = {:.1g}    threshold_rescaled_DNR_uint8 = {:d}".format(thres1,ret))
         # convert to 8-bit image (Open CV requirement for OTSU)
         img = np.array(255*img,np.uint8)
         img8 = np.copy(img)
         # input threshold
         ret1,img = cv2.threshold(img,ret,255,cv2.THRESH_BINARY)
-    print "thres1 = {:.1g}    thres8 = {:d}    thres16 = {:d}".format(thres1, thres8, thres16)
+    print("thres1 = {:.1g}    thres8 = {:d}    thres16 = {:d}".format(thres1, thres8, thres16))
     img_bin = np.copy(img)
 
     ## opening/closing operations
@@ -199,7 +199,7 @@ def get_estimator_boundingbox(tiff_file, channel=0, outputdir='.', w0=1, w1=100,
 
     ## find connected components
     ncomp, labels = cv2.connectedComponents(img)
-    print "Found {:d} objects".format(ncomp)
+    print("Found {:d} objects".format(ncomp))
 
     ## compute the bounding box for the identified labels
     #for n in range(ncomp):
@@ -278,7 +278,7 @@ def get_estimator_boundingbox(tiff_file, channel=0, outputdir='.', w0=1, w1=100,
         eimg[idx] = scores[n]
     nz = np.sum(eimg > 0.)
     ntot = len(np.ravel(eimg))
-    print "nz = {:d} / {:d}    sparcity index = {:.2e}".format(nz, ntot, float(nz)/float(ntot))
+    print("nz = {:d} / {:d}    sparcity index = {:.2e}".format(nz, ntot, float(nz)/float(ntot)))
     efname = bname
     #efile = os.path.join(outputdir,efname+'.txt')
     #efile = os.path.join(outputdir,efname+'.pkl')
@@ -287,7 +287,7 @@ def get_estimator_boundingbox(tiff_file, channel=0, outputdir='.', w0=1, w1=100,
         #np.savetxt(fout, eimg)
         #pkl.dump(eimg,fout)
         ssp.save_npz(efile, ssp.coo_matrix(eimg), compressed=False)
-    print "{:<20s}{:<s}".format('est. file', efile)
+    print("{:<20s}{:<s}".format('est. file', efile))
 
     if debug:
         debugdir = os.path.join(outputdir,'debug')
@@ -359,7 +359,7 @@ def get_estimator_boundingbox(tiff_file, channel=0, outputdir='.', w0=1, w1=100,
         fileout = os.path.join(debugdir,fname + '.png')
         gs.tight_layout(fig,w_pad=0)
         plt.savefig(fileout,dpi=300)
-        print "{:<20s}{:<s}".format('debug file', fileout)
+        print("{:<20s}{:<s}".format('debug file', fileout))
         plt.close('all')
     # from agarpad code: end """
 
@@ -442,7 +442,7 @@ def get_mask(f, ef, threshold=0., outputdir='.', debug=False):
         #np.savetxt(fout, mask)
         #pkl.dump(mask,fout)
         ssp.save_npz(mfile, ssp.coo_matrix(mask), compressed=False)
-    print "{:<20s}{:<s}".format('mask file', mfile)
+    print("{:<20s}{:<s}".format('mask file', mfile))
 
     # debug
     if debug:
@@ -462,7 +462,7 @@ def get_mask(f, ef, threshold=0., outputdir='.', debug=False):
         fileout = os.path.join(debugdir,fname + '.png')
         fig.tight_layout()
         plt.savefig(fileout,dpi=300, bbox_inches='tight', pad_inches=0)
-        print "{:<20s}{:<s}".format('debug file', fileout)
+        print("{:<20s}{:<s}".format('debug file', fileout))
         plt.close('all')
 
     return os.path.realpath(mfile)
@@ -492,7 +492,7 @@ def get_label(f, mf, outputdir='.', debug=False):
         #np.savetxt(fout, labels)
         #pkl.dump(labels,fout)
         ssp.save_npz(lfile, ssp.coo_matrix(labels), compressed=False)
-    print "{:<20s}{:<s}".format('labels file', lfile)
+    print("{:<20s}{:<s}".format('labels file', lfile))
 
     # debug
     if debug:
@@ -514,7 +514,7 @@ def get_label(f, mf, outputdir='.', debug=False):
         fileout = os.path.join(debugdir,fname + '.png')
         fig.tight_layout()
         plt.savefig(fileout,dpi=300, bbox_inches='tight', pad_inches=0)
-        print "{:<20s}{:<s}".format('debug file', fileout)
+        print("{:<20s}{:<s}".format('debug file', fileout))
         plt.close('all')
 
 
@@ -542,7 +542,7 @@ if __name__ == "__main__":
     outputdir = os.path.join(outputdir,'cells','segmentation')
     if not os.path.isdir(outputdir):
         os.makedirs(outputdir)
-    print "{:<20s}{:<s}".format("outputdir", outputdir)
+    print("{:<20s}{:<s}".format("outputdir", outputdir))
 
     # parameter file
     if namespace.paramfile is None:
@@ -571,7 +571,7 @@ if __name__ == "__main__":
 
     # debug or not
     if namespace.debug:
-        print "!! Debug mode !!"
+        print("!! Debug mode !!")
 
     params=allparams['segmentation']
     segmentation_method=params['method']
@@ -591,12 +591,12 @@ if __name__ == "__main__":
     if ntiffs == 0:
         raise ValueError("Number of tiff files is zero!")
     else:
-        print "{:<20s}{:<d}".format("ntiffs", ntiffs)
+        print("{:<20s}{:<d}".format("ntiffs", ntiffs))
 
     if not os.path.isfile(pathtoindex):
         index = np.asarray([[os.path.relpath(f,outputdir)] for f in tiff_files])
         write_index(pathtoindex,index)
-        print "{:<20s}{:<s}".format("fileout", pathtoindex)
+        print("{:<20s}{:<s}".format("fileout", pathtoindex))
 
     # move metadata if found
     index = load_index(pathtoindex)
@@ -617,7 +617,7 @@ if __name__ == "__main__":
         estimator_dir=os.path.join(outputdir,'estimators')
         if not os.path.isdir(estimator_dir):
             os.makedirs(estimator_dir)
-        print "{:<20s}{:<s}".format("est. dir.", estimator_dir)
+        print("{:<20s}{:<s}".format("est. dir.", estimator_dir))
         est_files = []
         for f in tiff_files:
             ef=get_estimator(f, method=segmentation_method, outputdir=estimator_dir, estimator_params=params['estimator_params'][segmentation_method], channel=params['channel'], debug=namespace.debug)
@@ -626,7 +626,7 @@ if __name__ == "__main__":
         index = np.concatenate([index,np.transpose([est_files])], axis=1)
 
         write_index(pathtoindex,index)
-        print "{:<20s}{:<s}".format("fileout", pathtoindex)
+        print("{:<20s}{:<s}".format("fileout", pathtoindex))
 
     # BUILD MASKS
     build_mask=False
@@ -638,7 +638,7 @@ if __name__ == "__main__":
         mask_dir=os.path.join(outputdir,'masks')
         if not os.path.isdir(mask_dir):
             os.makedirs(mask_dir)
-        print "{:<20s}{:<s}".format("mask dir.", mask_dir)
+        print("{:<20s}{:<s}".format("mask dir.", mask_dir))
         mask_files = []
         nfile = len(index)
         for n in range(nfile):
@@ -652,7 +652,7 @@ if __name__ == "__main__":
         index = np.concatenate([index,np.transpose([mask_files])], axis=1)
 
         write_index(pathtoindex,index)
-        print "{:<20s}{:<s}".format("fileout", pathtoindex)
+        print("{:<20s}{:<s}".format("fileout", pathtoindex))
 
     # BUILD LABELS
     build_label=False
@@ -664,7 +664,7 @@ if __name__ == "__main__":
         label_dir=os.path.join(outputdir,'labels')
         if not os.path.isdir(label_dir):
             os.makedirs(label_dir)
-        print "{:<20s}{:<s}".format("label dir.", label_dir)
+        print("{:<20s}{:<s}".format("label dir.", label_dir))
         label_files = []
         nfile = len(index)
         for n in range(nfile):
@@ -679,4 +679,4 @@ if __name__ == "__main__":
         index = np.concatenate([index,np.transpose([label_files])], axis=1)
 
         write_index(pathtoindex,index)
-        print "{:<20s}{:<s}".format("fileout", pathtoindex)
+        print("{:<20s}{:<s}".format("fileout", pathtoindex))

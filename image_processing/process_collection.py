@@ -23,12 +23,12 @@ from utils import *
 # yaml formats
 npfloat_representer = lambda dumper,value: dumper.represent_float(float(value))
 nparray_representer = lambda dumper,value: dumper.represent_list(value.tolist())
-float_representer = lambda dumper,value: dumper.represent_scalar(u'tag:yaml.org,2002:float', "{:<.8e}".format(value))
+float_representer = lambda dumper,value: dumper.represent_scalar('tag:yaml.org,2002:float', "{:<.8e}".format(value))
 unicode_representer = lambda dumper,value: dumper.represent_unicode(value.encode('utf-8'))
 yaml.add_representer(float,float_representer)
 yaml.add_representer(np.float_,npfloat_representer)
 yaml.add_representer(np.ndarray,nparray_representer)
-yaml.add_representer(unicode,unicode_representer)
+yaml.add_representer(str,unicode_representer)
 
 # matplotlib controls
 plt.rcParams['svg.fonttype'] = 'none'  # to embed fonts in output ('path' is to convert as text as paths)
@@ -39,7 +39,7 @@ plt.rcParams['axes.linewidth']=0.5
 def default_parameters():
     """Generate a default parameter dictionary."""
 
-    print "Loading default parameters"
+    print("Loading default parameters")
     params={}
     # filtering - select only a subset
     params['process_collection']={}
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     cells = load_json2dict(cellfile)
     ncells = len(cells)
-    print "ncells = {:d}".format(ncells)
+    print("ncells = {:d}".format(ncells))
 
     # output directory
     outputdir = namespace.outputdir
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         outputdir = os.path.relpath(outputdir, os.getcwd())
     if not os.path.isdir(outputdir):
         os.makedirs(outputdir)
-    print "{:<20s}{:<s}".format("outputdir", outputdir)
+    print("{:<20s}{:<s}".format("outputdir", outputdir))
 
     # parameter file
     if namespace.paramfile is None:
@@ -98,12 +98,12 @@ if __name__ == "__main__":
     params = allparams['process_collection']
     new_attributes = params['new_attributes']
     mpp = params['mpp']
-    keys = cells.keys()
+    keys = list(cells.keys())
     keys_sel = []
     for n in range(ncells):
         key = keys[n]
         cell = cells[key]
-        print "Cell {:d} / {:d} : {:s}".format(n,ncells,cell['id'])
+        print("Cell {:d} / {:d} : {:s}".format(n,ncells,cell['id']))
 
         # filtering operations
 
@@ -119,11 +119,11 @@ if __name__ == "__main__":
             if mpp is None:
                 try:
                     mpp = cell['mpp']
-                except KeyError, ValueError:
-                    print "Unit is lacking: mpp = 1! Skipping cell."
+                except KeyError as ValueError:
+                    print("Unit is lacking: mpp = 1! Skipping cell.")
                     continue
             if not 'volume' in cell:
-                print 'Volume must be computed for \'volume_um\''
+                print('Volume must be computed for \'volume_um\'')
                 continue
             cell['volume_um']  = cell['volume']*mpp*mpp*mpp
 
@@ -135,11 +135,11 @@ if __name__ == "__main__":
     # WRITE PROCESSED CELL FILE
     cells_new = {key: cells[key] for key in keys_sel}
     ncells_new = len(cells_new)
-    print "ncells_new = {:d}".format(ncells_new)
+    print("ncells_new = {:d}".format(ncells_new))
 
     cells_new = make_dict_serializable(cells_new)
     bname = os.path.splitext(os.path.basename(cellfile))[0]
     fname = "{}_processed".format(bname)
     pathtocells = os.path.join(outputdir, fname + '.js')
     write_dict2json(pathtocells,cells_new)
-    print "{:<20s}{:<s}".format('fileout', pathtocells)
+    print("{:<20s}{:<s}".format('fileout', pathtocells))

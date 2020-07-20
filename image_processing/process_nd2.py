@@ -16,18 +16,18 @@ from utils import *
 # yaml formats
 npfloat_representer = lambda dumper,value: dumper.represent_float(float(value))
 nparray_representer = lambda dumper,value: dumper.represent_list(value.tolist())
-float_representer = lambda dumper,value: dumper.represent_scalar(u'tag:yaml.org,2002:float', "{:<.8e}".format(value))
+float_representer = lambda dumper,value: dumper.represent_scalar('tag:yaml.org,2002:float', "{:<.8e}".format(value))
 unicode_representer = lambda dumper,value: dumper.represent_unicode(value.encode('utf-8'))
 yaml.add_representer(float,float_representer)
 yaml.add_representer(np.float_,npfloat_representer)
 yaml.add_representer(np.ndarray,nparray_representer)
-yaml.add_representer(unicode,unicode_representer)
+yaml.add_representer(str,unicode_representer)
 
 #################### function ####################
 def default_parameters():
     """Generate a default parameter dictionary."""
 
-    print "Loading default parameters"
+    print("Loading default parameters")
     params={}
     # filtering - select only a subset
     params['process_nd2']={}
@@ -47,7 +47,7 @@ def default_parameters():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Read and handle nd2 files.")
     parser.add_argument('ND2',  type=str, help='ND2 file to open.')
-    parser.add_argument('-f', '--paramfile',  type=file, required=False, help='Yaml file containing parameters.')
+    parser.add_argument('-f', '--paramfile',  type=open, required=False, help='Yaml file containing parameters.')
     parser.add_argument('-d', '--outputdir',  type=str, required=False, help='Output directory')
     parser.add_argument('--debug',  action='store_true', required=False, help='Enable debug mode')
 
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     outputdir = os.path.join(outputdir,'TIFFS')
     if not os.path.isdir(outputdir):
         os.makedirs(outputdir)
-    print "{:<20s}{:<s}".format("outputdir", outputdir)
+    print(("{:<20s}{:<s}".format("outputdir", outputdir)))
 
     # parameter file
     if namespace.paramfile is None:
@@ -91,4 +91,3 @@ if __name__ == "__main__":
 #    with open(fileout,'w') as fout:
 #        yaml.safe_dump(metainfo, fout, encoding=('utf-8'), default_flow_style=False, allow_unicode=False)
 #
-

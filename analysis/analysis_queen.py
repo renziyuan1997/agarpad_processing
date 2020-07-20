@@ -23,12 +23,12 @@ from utils import *
 # yaml formats
 npfloat_representer = lambda dumper,value: dumper.represent_float(float(value))
 nparray_representer = lambda dumper,value: dumper.represent_list(value.tolist())
-float_representer = lambda dumper,value: dumper.represent_scalar(u'tag:yaml.org,2002:float', "{:<.8e}".format(value))
+float_representer = lambda dumper,value: dumper.represent_scalar('tag:yaml.org,2002:float', "{:<.8e}".format(value))
 unicode_representer = lambda dumper,value: dumper.represent_unicode(value.encode('utf-8'))
 yaml.add_representer(float,float_representer)
 yaml.add_representer(np.float_,npfloat_representer)
 yaml.add_representer(np.ndarray,nparray_representer)
-yaml.add_representer(unicode,unicode_representer)
+yaml.add_representer(str,unicode_representer)
 
 # matplotlib controls
 plt.rcParams['svg.fonttype'] = 'none'  # to embed fonts in output ('path' is to convert as text as paths)
@@ -39,7 +39,7 @@ plt.rcParams['axes.linewidth']=0.5
 def default_parameters():
     """Generate a default parameter dictionary."""
 
-    print "Loading default parameters"
+    print("Loading default parameters")
     params={}
     # filtering - select only a subset
     params['analysis_queen']={}
@@ -68,7 +68,7 @@ def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['
     QUEEN=[]
 
     # make lists
-    keys = cells.keys()
+    keys = list(cells.keys())
     for n in range(ncells):
         key = keys[n]
         cell = cells[key]
@@ -145,7 +145,7 @@ def make_plot_queen(cells, outputdir='.', bins=['auto','auto','auto'], titles=['
     for ext in exts:
         fileout = os.path.join(outputdir,filename+ext)
         fig.savefig(fileout, bbox_inches='tight', pad_inches=0)
-        print "Fileout: {:<s}".format(fileout)
+        print("Fileout: {:<s}".format(fileout))
     return
 
 #################### main ####################
@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
     cells = load_json2dict(cellfile)
     ncells = len(cells)
-    print "ncells = {:d}".format(ncells)
+    print("ncells = {:d}".format(ncells))
 
     # output directory
     outputdir = namespace.outputdir
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     outputdir = os.path.join(rootdir,'queen')
     if not os.path.isdir(outputdir):
         os.makedirs(outputdir)
-    print "{:<20s}{:<s}".format("outputdir", outputdir)
+    print("{:<20s}{:<s}".format("outputdir", outputdir))
 
     # parameter file
     if namespace.paramfile is None:

@@ -68,14 +68,14 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
     nd2_iterator = ND2Reader(nd2file)
     axes = nd2_iterator.axes  # list of char ['t', 'm', 'c', 'z',] 'y' or 'x'
     sizes = nd2_iterator.sizes  # dict with keys in axes list and value is the corresponding dimension
-    print vars(nd2_iterator).keys()
+    print(list(vars(nd2_iterator).keys()))
     bname = os.path.splitext(os.path.basename(nd2_iterator.filename))[0]
-    print "{:<20s}{:<s}".format('bname',bname)
+    print("{:<20s}{:<s}".format('bname',bname))
 
-    print "Axes:", axes
-    print "Sizes:"
+    print("Axes:", axes)
+    print("Sizes:")
     for ax in axes:
-        print "{ax:<5s}{dim:<10d}".format(ax=ax,dim=sizes[ax])
+        print("{ax:<5s}{dim:<10d}".format(ax=ax,dim=sizes[ax]))
 
     # build filtering indexes
     idx = {}
@@ -96,7 +96,7 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
             tend = nt-1
         tstart = max(tstart,0)
         tend = min(tend,nt-1)
-        print "tstart = {:d}  tend = {:d}".format(tstart,tend)
+        print("tstart = {:d}  tend = {:d}".format(tstart,tend))
         idx['t']=np.arange(tstart,tend+1)
 
     ## fov
@@ -106,9 +106,9 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
         fmtdict['m']=fmt
         if (fovs is None):
             fovs = np.arange(nm)
-        print "FOVs"
+        print("FOVs")
         for i in fovs:
-            print "{:<2s}FOV {:d} selected".format("",i)
+            print("{:<2s}FOV {:d} selected".format("",i))
         idx['m']=fovs
 
     ## colors
@@ -119,7 +119,7 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
         if (colors is None):
             colors = np.arange(nc)
         for i in colors:
-            print "Channel {:d} selected".format(i)
+            print("Channel {:d} selected".format(i))
         idx['c']=colors
 
     ## cropping
@@ -135,7 +135,7 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
         ylo=0
         yhi=ny-1
     if not (ylo < yhi):
-        print "Problem with y-cropping: ylo = {:d}    yhi = {:d}".format(ylo,yhi)
+        print("Problem with y-cropping: ylo = {:d}    yhi = {:d}".format(ylo,yhi))
     if np.mod(yhi+1-ylo,2) == 1:
         yhi = yhi - 1
     idx['y']=np.arange(ylo,yhi+1, dtype=np.uint)
@@ -146,12 +146,12 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
         nx = sizes['x']
         xlo,xhi = np.asarray(xcrop,dtype=np.uint)
         xlo = max(xlo,0)
-        xhi = min(xhi,nx-1)
+        xhi = min(xhi,ny-1)
     else:
         xlo=0
         xhi=nx-1
     if not (xlo < xhi):
-        print "Problem with x-cropping: xlo = {:d}    xhi = {:d}".format(xlo,xhi)
+        print("Problem with x-cropping: xlo = {:d}    xhi = {:d}".format(xlo,xhi))
     if np.mod(xhi+1-xlo,2) == 1:
         xhi = xhi - 1
     idx['x']=np.arange(xlo,xhi+1,dtype=np.uint)
@@ -172,14 +172,14 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
 
     if 'm' in axes:
         nd2_iterator.iter_axes='m'
-        print "Starting per-FOV writing"
+        print("Starting per-FOV writing")
         for fov in idx['m']:
-            print "FOV {:d}".format(fov)
+            print("FOV {:d}".format(fov))
             frame = nd2_iterator[fov]
             fov_no = frame.frame_no
             tiff_meta = frame.metadata
             if (fov_no != fov):
-                print "Inconsistency for fov {:d}: fov_no={:d}".format(fov,fov_no)
+                print("Inconsistency for fov {:d}: fov_no={:d}".format(fov,fov_no))
             if 't' in axes:
                 raise ValueError("Time axis handling not implemented yet.")
                 frame.iter_axes='t'
@@ -198,7 +198,7 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
                 fname = fname.format(fov=fov)
                 fileout = os.path.join(tiffdir,fname+'.tif')
                 ti.imwrite(fileout, img, imagej=True, photometric='minisblack',metadata=tiff_meta)
-                print "{:<20s}{:<s}".format('fileout', fileout)
+                print("{:<20s}{:<s}".format('fileout', fileout))
     else:
         frame = nd2_iterator
         tiff_meta = frame.metadata
@@ -219,7 +219,7 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
                 # write tiff as a stack
                 fileout = os.path.join(tiffdir,fname.format(t=t) +'.tif')
                 ti.imwrite(fileout, img, imagej=True, photometric='minisblack',metadata=tiff_meta)
-                print "{:<20s}{:<s}".format('fileout', fileout)
+                print("{:<20s}{:<s}".format('fileout', fileout))
             sys.exit()
         else:
             img = np.array(frame[0])
@@ -234,7 +234,7 @@ def process_nd2_tiff(nd2file, tstart=None, tend=None, fovs=None, colors=None, xc
             fname = bname
             fileout = os.path.join(tiffdir,fname+'.tif')
             ti.imwrite(fileout, img, imagej=True, photometric='minisblack',metadata=tiff_meta)
-            print "{:<20s}{:<s}".format('fileout', fileout)
+            print("{:<20s}{:<s}".format('fileout', fileout))
 
     return nd2_iterator.metadata
 

@@ -105,7 +105,7 @@ def load_json2dict(pathtojson):
     return mydict
 
 def make_dict_serializable(mydict):
-    for k, v in mydict.iteritems():
+    for k, v in mydict.items():
         if isinstance(v, dict):
             make_dict_serializable(v)
         else:
@@ -140,8 +140,8 @@ def get_tiff2ndarray(tiff_file,channel=0,metadata=False, normalize=True):
         with ti.TiffFile(tiff_file) as tif:
             img = tif.asarray()
             meta = tif.imagej_metadata
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         raise ValueError("Opening tiff with tiff failed.")
 
     naxis = len(img.shape)
@@ -238,7 +238,7 @@ def get_OTSU(tiff_files, outputdir='.', write=True,NBYTESMAX=1000000000, nfiles=
         header="channel, float, uint8, uint16"
         fileout = os.path.join(outputdir, "thresholds_otsu.txt")
         np.savetxt(fileout,thresholds, header=header,fmt='%-8d%-8.4f%-8d%-8d')
-        print "{:<20s}{:<s}".format("fileout",fileout)
+        print("{:<20s}{:<s}".format("fileout",fileout))
 
     # return
     return thresholds
@@ -263,7 +263,7 @@ if __name__ == "__main__":
         outputdir = os.path.relpath(outputdir, os.getcwd())
     if not os.path.isdir(outputdir):
         os.makedirs(outputdir)
-    print "{:<20s}{:<s}".format("outputdir", outputdir)
+    print("{:<20s}{:<s}".format("outputdir", outputdir))
 
 #    # parameter file
 #    if namespace.paramfile is None:
@@ -287,10 +287,10 @@ if __name__ == "__main__":
         if test:
             tiff_files.append(f)
     ntiffs = len(tiff_files)
-    print "ntiffs = {:d}".format(ntiffs)
+    print("ntiffs = {:d}".format(ntiffs))
 
     # OTSU thresholds
     if namespace.otsu and (ntiffs > 0):
-        print "Computing OTSU thresholds..."
+        print("Computing OTSU thresholds...")
         thresholds = get_OTSU(tiff_files, outputdir=outputdir)
 

@@ -9,7 +9,7 @@ import argparse
 import shutil
 import tifffile as ti
 import cv2
-import cPickle as pkl
+import pickle as pkl
 
 # custom
 from utils import *
@@ -18,18 +18,18 @@ from utils import *
 # yaml formats
 npfloat_representer = lambda dumper,value: dumper.represent_float(float(value))
 nparray_representer = lambda dumper,value: dumper.represent_list(value.tolist())
-float_representer = lambda dumper,value: dumper.represent_scalar(u'tag:yaml.org,2002:float', "{:<.8e}".format(value))
+float_representer = lambda dumper,value: dumper.represent_scalar('tag:yaml.org,2002:float', "{:<.8e}".format(value))
 unicode_representer = lambda dumper,value: dumper.represent_unicode(value.encode('utf-8'))
 yaml.add_representer(float,float_representer)
 yaml.add_representer(np.float_,npfloat_representer)
 yaml.add_representer(np.ndarray,nparray_representer)
-yaml.add_representer(unicode,unicode_representer)
+yaml.add_representer(str,unicode_representer)
 
 #################### function ####################
 def default_parameters():
     """Generate a default parameter dictionary."""
 
-    print "Loading default parameters"
+    print("Loading default parameters")
     params={}
     # filtering - select only a subset
     params['collection']={}
@@ -46,18 +46,18 @@ def check_segmentation(sdir):
     OUTPUT:
       * boolean
     """
-    print "{:<20s}{:<s}".format("segmentation dir:", sdir)
+    print("{:<20s}{:<s}".format("segmentation dir:", sdir))
 
     # check directory existence
     if not os.path.isdir(sdir):
-        print "Segmentation directory doesn\'t exist."
+        print("Segmentation directory doesn\'t exist.")
         return False
 
     # check index
     indexname='index_tiffs.txt'
     pathtoindex=os.path.join(sdir,indexname)
     if not os.path.isfile(pathtoindex):
-        print "Index file doesn\'t exist: {:s}".format(indexname)
+        print("Index file doesn\'t exist: {:s}".format(indexname))
         return False
 
     # check existence of all files in the index
@@ -72,22 +72,22 @@ def check_segmentation(sdir):
 
         # check tiff
         if not check_tiff_file(f):
-            print "Problem with file {:s}".format(f)
+            print("Problem with file {:s}".format(f))
             return False
 
         # check estimator file
         if not check_estimator_file(ef):
-            print "Problem with file {:s}".format(ef)
+            print("Problem with file {:s}".format(ef))
             return False
 
         # check mask file
         if not check_mask_file(mf):
-            print "Problem with file {:s}".format(mf)
+            print("Problem with file {:s}".format(mf))
             return False
 
         # check labels file
         if not check_labels_file(lf):
-            print "Problem with file {:s}".format(lf)
+            print("Problem with file {:s}".format(lf))
             return False
 
     return True
@@ -155,20 +155,20 @@ def write_crop(img, mask, points, bname, tiff_dir='.', mask_dir='.', pad_x=5, pa
         plt.xticks([]),plt.yticks([])
         fileout = os.path.join(debugdir,bname+".png")
         plt.savefig(fileout, dpi=300, bbox_inches='tight', pad_inches=0)
-        print "{:<20s}{:<s}".format('fileout',fileout)
+        print("{:<20s}{:<s}".format('fileout',fileout))
         plt.close('all')
 
     # write tiff
     fileout = os.path.join(tiff_dir,bname+'.tif')
     ti.imwrite(fileout, subimg, imagej=True, photometric='minisblack')
-    print "{:<20s}{:<s}".format('fileout',fileout)
+    print("{:<20s}{:<s}".format('fileout',fileout))
 
     # write
     fileout = os.path.join(mask_dir,bname+'.tif')
     #fileout = os.path.join(mask_dir,bname+'.txt')
     #np.savetxt(fileout,submask)
     ti.imwrite(fileout, np.array(255*submask,dtype=np.uint8), imagej=True, photometric='minisblack')
-    print "{:<20s}{:<s}".format('fileout',fileout)
+    print("{:<20s}{:<s}".format('fileout',fileout))
 
     return
 
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Segmentation tool -- cells.")
     parser.add_argument('-f', '--paramfile',  type=file, required=False, help='Yaml file containing parameters.')
     parser.add_argument('-d', '--outputdir',  type=str, required=False, help='Output directory')
-    #parser.add_argument('--lean',  action='store_true', required=False, help='Do not write crops for collection.')
+    parser.add_argument('--lean',  action='store_true', required=False, help='Do not write crops for collection.')
     parser.add_argument('--debug',  action='store_true', required=False, help='Enable debug mode')
 
     # INITIALIZATION
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     outputdir = os.path.join(outputdir,'cells','collection')
     if not os.path.isdir(outputdir):
         os.makedirs(outputdir)
-    print "{:<20s}{:<s}".format("outputdir", outputdir)
+    print("{:<20s}{:<s}".format("outputdir", outputdir))
 
     # parameter file
     if namespace.paramfile is None:
@@ -215,7 +215,7 @@ if __name__ == "__main__":
 
     # debug or not
     if namespace.debug:
-        print "!! Debug mode !!"
+        print("!! Debug mode !!")
 
     # GET METADATA
     pathtometa = os.path.join(rootdir,'metadata.txt')
@@ -228,7 +228,7 @@ if __name__ == "__main__":
     has_segmentation = check_segmentation(seg_dir)
     if not has_segmentation:
         raise ValueError("Problems with segmentation! Run segmentation again.")
-    print "Segmentation detected"
+    print("Segmentation detected")
 
     # parameters
     mpp = params['px2um']
@@ -249,11 +249,11 @@ if __name__ == "__main__":
     tiff_dir = os.path.join(outputdir,'tiffs')
     if not os.path.isdir(tiff_dir):
         os.makedirs(tiff_dir)
-    print "{:<20s}{:<s}".format("tiff_dir", tiff_dir)
+    print("{:<20s}{:<s}".format("tiff_dir", tiff_dir))
     mask_dir = os.path.join(outputdir,'masks')
     if not os.path.isdir(mask_dir):
         os.makedirs(mask_dir)
-    print "{:<20s}{:<s}".format("mask_dir", mask_dir)
+    print("{:<20s}{:<s}".format("mask_dir", mask_dir))
     ## tiff list
     indexname='index_tiffs.txt'
     pathtoindex=os.path.join(seg_dir,indexname)
@@ -262,34 +262,34 @@ if __name__ == "__main__":
     for n in range(nfiles):
         # load tiff
         f, ef, mf, lf = index[n]
-        print "Processing file {:d} / {:d}".format(n,nfiles)
+        print("Processing file {:d} / {:d}".format(n,nfiles))
         f = os.path.relpath(os.path.join(seg_dir,f))
-        print f
+        print(f)
         with ti.TiffFile(f) as tif:
             img = tif.asarray()
             meta = tif.imagej_metadata
         if mpp is None:
             try:
                 mpp = float(meta['mpp'])
-                print "mpp = {:.6f}".format(mpp)
-            except KeyError, ValueError:
-                print "Unit is lacking: mpp = 1!"
+                print("mpp = {:.6f}".format(mpp))
+            except KeyError as ValueError:
+                print("Unit is lacking: mpp = 1!")
                 mpp = 1.
         fov = meta['m']
         nchannels, height, width = img.shape
-        print img.dtype
-        print img.shape
+        print(img.dtype)
+        print(img.shape)
 
         # make meshgrid
         Y,X = np.mgrid[0:height,0:width]
 
         # load labels
         lf = os.path.relpath(os.path.join(seg_dir,lf))
-        print lf
+        print(lf)
         labels = ssp.load_npz(lf).todense()
         nlabels = np.max(labels)
         if nlabels == 0:
-            print "No labels detected"
+            print("No labels detected")
             continue
 
         # compute background
@@ -301,7 +301,7 @@ if __name__ == "__main__":
         # iterate over segmented objects
         for n in range(1, nlabels):
             cell = {}
-            print "Getting cell {:d} / {:d} for FOV {:d}".format(n,nlabels,fov)
+            print("Getting cell {:d} / {:d} for FOV {:d}".format(n,nlabels,fov))
 
             # make index
             mask = (labels == n)
@@ -326,7 +326,7 @@ if __name__ == "__main__":
             cell['bounding_box_rotated']['ycoord_center']=xymid[1]
             cell['bounding_box_rotated']['width']=w
             cell['bounding_box_rotated']['height']=h
-            cell['bounding_box_rotated']['angle']=angle
+            cell['bounding_box_rotated']['angle']=h
 
             # dimensions
             if w > h:
@@ -359,15 +359,15 @@ if __name__ == "__main__":
             cells.append(cell)
 
             # write tiff
-            if params['write_cropped']:
+            if not namespace.lean:
                 write_crop(img, mask, points, bname=cell_id, tiff_dir=tiff_dir, mask_dir=mask_dir,debug=namespace.debug, **params['crops'])
 
     ncells = len(cells)
-    print "ncells = {:d} collected".format(ncells)
+    print("ncells = {:d} collected".format(ncells))
 
 # write down the cell dictionary
     celldict = {cell['id']: cell for cell in cells}
     celldict = make_dict_serializable(celldict)
     pathtocells = os.path.join(outputdir, 'collection.js')
     write_dict2json(pathtocells,celldict)
-    print "{:<20s}{:<s}".format('fileout', pathtocells)
+    print("{:<20s}{:<s}".format('fileout', pathtocells))

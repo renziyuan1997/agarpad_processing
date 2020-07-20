@@ -10,7 +10,7 @@ import shutil
 #from PIL import Image
 import tifffile as ti
 import cv2
-import cPickle as pkl
+import pickle as pkl
 import scipy.ndimage as simg
 
 # custom
@@ -20,18 +20,18 @@ from utils import *
 # yaml formats
 npfloat_representer = lambda dumper,value: dumper.represent_float(float(value))
 nparray_representer = lambda dumper,value: dumper.represent_list(value.tolist())
-float_representer = lambda dumper,value: dumper.represent_scalar(u'tag:yaml.org,2002:float', "{:<.8e}".format(value))
+float_representer = lambda dumper,value: dumper.represent_scalar('tag:yaml.org,2002:float', "{:<.8e}".format(value))
 unicode_representer = lambda dumper,value: dumper.represent_unicode(value.encode('utf-8'))
 yaml.add_representer(float,float_representer)
 yaml.add_representer(np.float_,npfloat_representer)
 yaml.add_representer(np.ndarray,nparray_representer)
-yaml.add_representer(unicode,unicode_representer)
+yaml.add_representer(str,unicode_representer)
 
 #################### function ####################
 def default_parameters():
     """Generate a default parameter dictionary."""
 
-    print "Loading default parameters"
+    print("Loading default parameters")
     params={}
     # filtering - select only a subset
     params['preprocess_images']={}
@@ -65,15 +65,15 @@ def get_background_checkerboard(img, size=65):
     for j in range(nh):
         h0 = hedges[j]
         h1 = hedges[j+1]
-        print "h0 = {:.1e}    h1 = {:.1e}".format(h0,h1)
+        print("h0 = {:.1e}    h1 = {:.1e}".format(h0,h1))
         for i in range(nw):
             w0 = wedges[i]
             w1 = wedges[i+1]
-            print "w0 = {:.1e}    w1 = {:.1e}".format(w0,w1)
+            print("w0 = {:.1e}    w1 = {:.1e}".format(w0,w1))
             rect = img[h0:h1:,w0:w1]
 
             val = np.median(rect)
-            print "median = {:.1e}".format(val)
+            print("median = {:.1e}".format(val))
             bg[h0:h1,w0:w1] = val
             img_coarse[j,i] = val
 
@@ -154,16 +154,6 @@ def get_background_medianblur(img, size=201):
     myimg = (myimg - imin) / (imax - imin)
     myimg = np.array(255*myimg, dtype=np.uint8)
     bg = cv2.medianBlur(myimg, ksize=size)
-#
-#    size = 2* (size//2) + 1 # I like odd numbers
-#    footprint = np.ones((size,size))
-#    nrange = np.arange(size)
-#    NN,MM = np.meshgrid(nrange,nrange)
-#    n0 = size//2
-#    idx = ((NN-n0)**2+(MM-n0)**2 < (0.5*size)**2)
-#    footprint[~idx] = 0
-#    myimg = simg.median_filter(myimg, footprint=footprint, mode='reflect')
-
 
     bg = cv2.blur(bg,ksize=(size,size)) # maybe not essential, to smooth background values
     bg = np.array(bg, dtype=np.float32)/255
@@ -171,108 +161,6 @@ def get_background_medianblur(img, size=201):
     bg = np.array(bg, dtype=img.dtype)
 
     return bg
-
-def get_background_logmean_fft(img, size=201, logtransform=False):
-    shape = img.shape
-    if len(shape) != 2:
-        raise ValueError("img must be a 2D array")
-    dtype = img.dtype
-    norm = get_img_norm(dtype)
-
-    # rescale
-    myimg = np.array(img, dtype=np.float32)
-    imin = np.min(myimg)
-    imax = np.max(myimg)
-    scale = (imax-imin)
-
-    offset = 0.
-    if (imin < 0.):
-        offset = 2*np.abs(imin)
-    elif (imin ==  0.):
-        offset = np.sort(np.unique(myimg))[1]
-    myimg = (myimg+offset)/scale
-
-    # do the fft rescaling
-    h,w = myimg.shape
-    l = size//2
-    #print("l = {:d}".format(l))
-    X = np.zeros((h+2*l,w+2*l))
-    hnew,wnew = X.shape
-    F = np.zeros((hnew,wnew))
-    hrange = np.arange(hnew)
-    wrange = np.arange(wnew)
-
-    kfreq_h = np.fft.fftfreq(hnew) # frequencies
-    kfreq_w = np.fft.fftfreq(wnew) # frequencies
-
-    # pad input image by reflection
-    if (l > 0):
-        X[l:-l,l:-l] = np.copy(myimg)
-        Xpad = X[l:2*l,l:-l]
-        X[:l,l:-l] = Xpad[::-1,:]
-        Xpad = X[-2*l:-l,l:-l]
-        X[-l:,l:-l] = Xpad[::-1,:]
-
-        Xpad = X[:,l:2*l]
-        X[:,:l] = Xpad[:,::-1]
-        Xpad = X[:,-2*l:-l]
-        X[:,-l:] = Xpad[:,::-1]
-    else:
-        X = np.copy(myimg)
-
-    # make footprint for average
-    footprint_func = lambda n,m : (n**2 + m**2 <= l**2) | ((hnew-n)**2 + m**2 <= l**2) | ((hnew-n)**2 + (wnew-m)**2 <= l**2) | (n**2 + (wnew-m)**2 <= l**2)
-    hh,ww = np.meshgrid(hrange,wrange,indexing='ij')
-    F = np.float_(footprint_func(hh,ww))
-    fsum = np.sum(F)  # normalization so that it is a mean
-    F /= fsum
-    #print("fsum = {:.6f}".format(fsum))
-    # important to check than without lognorm, with l=0, it reproduces the input after fft and ifft.
-
-    Xcpy = np.copy(X)
-    # log transform
-    if (logtransform):
-        X = np.log(X)
-
-    # fourier transform
-    Xtilde = np.fft.fftn(X)
-    Ftilde = np.fft.fftn(F)
-    X = np.real(np.fft.ifftn(Xtilde*Ftilde))
-    #print(np.max(X-Xcpy), np.median(X-Xcpy))
-
-    # log detransform
-    if (logtransform):
-        X = np.exp(X)
-    bg = X[l:-l,l:-l]
-
-#    # test
-#    import matplotlib.pyplot as plt
-#    xmin = np.min(myimg)
-#    xmax = np.max(myimg)
-#    fig=plt.figure()
-#    ax = fig.add_subplot(1,2,1)
-#    #im = ax.imshow(F)
-#    im = ax.imshow(Xcpy, vmin=xmin,vmax=xmax)
-#    fig.colorbar(im,ax=ax)
-#
-#    ax = fig.add_subplot(1,2,2)
-#    #ax.imshow(np.real(Ftilde))
-#    im = ax.imshow(X, vmin=xmin,vmax=xmax)
-#
-#    fig.colorbar(im,ax=ax)
-#
-#    fig.savefig('footprint.png')
-#    plt.close()
-#    sys.exit()
-#    # test
-
-    # restore scaling
-    bg = cv2.blur(bg,ksize=(size,size)) # maybe not essential, to smooth background values
-    #bg = np.array(bg, dtype=np.float32)/255
-    bg = scale* bg - offset
-    bg = np.array(bg, dtype=img.dtype)
-    return bg
-
 
 def preprocess_image(tiff_file, outputdir='.', invert=None, bg_subtract=True, bg_size=200, debug=False):
     """
@@ -296,9 +184,8 @@ def preprocess_image(tiff_file, outputdir='.', invert=None, bg_subtract=True, bg
     """
 
     # method for background subtraction
-    #get_background = get_background_medianblur
+    get_background = get_background_medianblur
     #get_background = get_background_checkerboard
-    get_background = lambda arr, size: get_background_logmean_fft(arr, size=size, logtransform=True)
 
     # pre-processing
     bname = os.path.splitext(os.path.basename(tiff_file))[0]
@@ -324,11 +211,11 @@ def preprocess_image(tiff_file, outputdir='.', invert=None, bg_subtract=True, bg
     if invert == None:
         invert = []
     elif invert == 'all':
-        invert = range(nchannels)
+        invert = list(range(nchannels))
 
     # adjust background sliding window size
     bg_size = 2*int(bg_size/2) + 1 # make odd
-    print "bg_size = {:d}".format(bg_size)
+    print("bg_size = {:d}".format(bg_size))
 
     img0 = np.copy(img)
     # process channels
@@ -348,7 +235,7 @@ def preprocess_image(tiff_file, outputdir='.', invert=None, bg_subtract=True, bg
         if bg_subtract:
 #            print "Background subtraction..."
             # method for background subtraction using sliding window
-            img_bg[c] = get_background(arr, bg_size)
+            img_bg[c] = get_background(arr, size=bg_size)
             idx = arr > img_bg[c]
 #            print np.unique(arr)
 #            print np.unique(img_bg[c])
@@ -375,15 +262,15 @@ def preprocess_image(tiff_file, outputdir='.', invert=None, bg_subtract=True, bg
     fname = os.path.basename(tiff_file)
     fileout = os.path.join(outputdir,fname)
     ti.imwrite(fileout, img, imagej=True, photometric='minisblack', metadata=meta)
-    print "{:<20s}{:<s}".format('fileout',fileout)
+    print("{:<20s}{:<s}".format('fileout',fileout))
 
     # debug
     if debug:
-        print "Debug for preprocess images"
+        print("Debug for preprocess images")
         img_bg_post = np.zeros(shape, dtype=dtype)
         for c in range(nchannel):
 #            print "c = {:d}".format(c)
-            img_bg_post[c] = get_background(img[c], bg_size)
+            img_bg_post[c] = get_background(img[c], size=bg_size)
 #            print np.unique(img[c])
 #            print np.unique(img_bg_post[c])
         debugdir = os.path.join(outputdir,'debug')
@@ -423,7 +310,7 @@ def preprocess_image(tiff_file, outputdir='.', invert=None, bg_subtract=True, bg
         fileout = os.path.join(debugdir,fname + '.png')
         gs.tight_layout(fig,w_pad=0)
         plt.savefig(fileout,dpi=300)
-        print "{:<20s}{:<s}".format('debug file', fileout)
+        print("{:<20s}{:<s}".format('debug file', fileout))
         plt.close('all')
 
     # exit
@@ -450,7 +337,7 @@ if __name__ == "__main__":
         outputdir = os.path.relpath(outputdir, os.getcwd())
     if not os.path.isdir(outputdir):
         os.makedirs(outputdir)
-    print "{:<20s}{:<s}".format("outputdir", outputdir)
+    print("{:<20s}{:<s}".format("outputdir", outputdir))
 
     # parameter file
     if namespace.paramfile is None:
@@ -482,14 +369,13 @@ if __name__ == "__main__":
     # copy metadata
     tiffdir=os.path.dirname(os.path.relpath(tiff_files[0], rootdir))
     metadata=os.path.join(tiffdir,'metadata.txt')
-    if os.path.isfile(metadata):
-        dest = os.path.join(outputdir,os.path.basename(metadata))
-        if (os.path.realpath(metadata) != os.path.realpath(dest)):
-            shutil.copy(metadata,dest)
+    dest = os.path.join(outputdir,os.path.basename(metadata))
+    if (os.path.realpath(metadata) != os.path.realpath(dest)):
+        shutil.copy(metadata,dest)
 
     # debug or not
     if namespace.debug:
-        print "!! Debug mode !!"
+        print("!! Debug mode !!")
 
     params=allparams['preprocess_images']
 
